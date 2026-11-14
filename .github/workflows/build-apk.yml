@@ -1,0 +1,88 @@
+name: Build JARVIS APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Run brain tests
+        run: npm test
+
+      - name: Create Android project (first run only) and sync web files
+        id: android
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+          npx cap sync android
+
+      - name: Prepare stable signing key
+        env:
+          JARVIS_KS_PASS: ${{ secrets.JARVIS_KEY_PASSPHRASE }}
+        run: bash scripts/keystore.sh
+
+      - name: Build debug APK
+        working-directory: android
+        env:
+          JARVIS_KS_PASS: ${{ secrets.JARVIS_KEY_PASSPHRASE }}
+        run: ./gradlew -I ../scripts/signing.init.gradle assembleDebug
+
+      - name: Show signing certificate (must be identical on every build)
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          "$APKSIGNER" verify --print-certs "$APK" | grep -E "SHA-256|Signer #1 certificate DN"
+
+      - name: Save generated files to the repo (first run only)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ steps.android.outputs.created }}" = "true" ]; then git add android; fi
+          git add signing/jarvis.keystore.enc package-lock.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Nothing new to save."
+          else
+            git commit -m "chore: save Android project, encrypted signing key and lockfile [skip ci]"
+            git push
+          fi
+
+      - name: Keep APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish APK to Releases (easy phone download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-build
+          name: JARVIS latest build
+          prerelease: true
+          files: android/app/build/outputs/apk/debug/app-debug.apk
