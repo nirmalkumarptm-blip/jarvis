@@ -1,0 +1,18 @@
+// Gradle init script: signs the debug APK with JARVIS's stable key when JARVIS_KEYSTORE is set.
+// If it is not set, Gradle's normal temporary debug key is used (nothing changes).
+allprojects {
+    pluginManager.withPlugin('com.android.application') {
+        def ksPath = System.getenv('JARVIS_KEYSTORE')
+        def ksPass = System.getenv('JARVIS_KS_PASS')
+        if (ksPath && ksPass) {
+            def androidExt = project.extensions.getByName('android')
+            androidExt.signingConfigs.create('jarvis') {
+                storeFile project.file(ksPath)
+                storePassword ksPass
+                keyAlias 'jarvis'
+                keyPassword ksPass
+            }
+            androidExt.buildTypes.getByName('debug').signingConfig = androidExt.signingConfigs.getByName('jarvis')
+        }
+    }
+}
