@@ -1,0 +1,9 @@
+node_modules/
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+# signing: only the ENCRYPTED key (signing/jarvis.keystore.enc) may be committed
+*.keystore
+*.jks
