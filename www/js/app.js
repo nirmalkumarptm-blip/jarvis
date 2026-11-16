@@ -181,6 +181,29 @@ function addTyping() {
   return m;
 }
 
+function restoreConversation() {
+  const items = brain.getHistory();
+
+  if (!items.length) {
+    setChatting(false);
+    return;
+  }
+
+  setChatting(true);
+
+  for (const m of items) {
+    const ts = Number.isFinite(m.ts) ? m.ts : Date.now();
+
+    if (m.role === 'user') {
+      addUser(m.content, ts);
+    } else if (m.role === 'assistant') {
+      addJarvis(m.content, m.source || 'system', ts);
+    }
+  }
+
+  scrollChat();
+}
+
 function updateSend() {
   $('btnSend').disabled = busy || !$('cmd').value.trim();
 }
@@ -215,9 +238,9 @@ function renderHistory() {
   const list = $('historyList');
   list.replaceChildren();
   const items = brain.getHistory();
-  $('hCount').textContent = items.length
-    ? `${items.length} message${items.length === 1 ? '' : 's'} · stored in memory for this session only`
-    : 'Stored in memory for this session only';
+ $('hCount').textContent = items.length
+  ? `${items.length} message${items.length === 1 ? '' : 's'} · saved on this device`
+  : 'No saved conversation history';
   $('btnClear').hidden = !items.length;
   if (!items.length) {
     list.appendChild(el('div', 'empty', 'No conversation yet.'));
@@ -334,6 +357,7 @@ $('btnOrb').addEventListener('click', () => toast('Microphone is not available y
   $('heroGreeting').textContent = g + '.';
 })();
 initReactor();
+restoreConversation();
 applyPrefs();
 updateNet();
 window.addEventListener('online', updateNet);
