@@ -2,7 +2,12 @@
 import { createBrain } from './core/brain.js';
 import { loadSettings, saveSettings, isValidProxyUrl } from './core/settings.js';
 import { initReactor, setReactorState, previewSequence, cancelPreview } from './ui/reactor.js';
-import { setVoiceMode, runVoiceDemo } from './ui/voice-panel.js';
+import {
+  setVoiceMode,
+  runVoiceDemo,
+  startListening,
+  speakReply
+} from './ui/voice-panel.js';
 
 const $ = (id) => document.getElementById(id);
 const SOURCE = {
@@ -208,26 +213,45 @@ function updateSend() {
   $('btnSend').disabled = busy || !$('cmd').value.trim();
 }
 
-async function send(raw) {
+async function send(raw, { speak = false } = {}) {
   const text = String(raw).trim();
   if (busy || !text) return;
+
   busy = true;
   cancelPreview();
   setChatting(true);
   addUser(text, Date.now());
+
   const typing = addTyping();
   setReactorState('thinking');
   updateSend();
+
   try {
-    // Short settle time so instant on-device answers still show the thinking state.
-    const [r] = await Promise.all([brain.handle(text), sleep(280)]);
+    const [r] = await Promise.all([
+      brain.handle(text),
+      sleep(280)
+    ]);
+
     typing.remove();
     addJarvis(r.text, r.source, Date.now());
+
+    if (speak) {
+      try {
+        setReactorState('speaking');
+        await speakReply(r.text, r.lang);
+      } catch {
+        toast('JARVIS voice unavailable. Check phone TTS settings.');
+      }
+    }
   } catch {
     typing.remove();
-    addJarvis('Something went wrong on my side. Please try again.', 'system', Date.now());
+    addJarvis(
+      'Something went wrong on my side. Please try again.',
+      'system',
+      Date.now()
+    );
   } finally {
-    setReactorState('idle'); // Milestone 3 will switch to 'speaking' while the voice talks
+    setReactorState('idle');
     busy = false;
     updateSend();
   }
@@ -348,8 +372,26 @@ document.querySelectorAll('[data-suggest]').forEach((b) =>
 $('btnMic').addEventListener('click', () => setVoiceMode(true));
 $('btnKeyboard').addEventListener('click', () => setVoiceMode(false));
 $('btnDemo').addEventListener('click', runVoiceDemo);
-$('btnOrb').addEventListener('click', () => toast('Microphone is not available yet. Voice arrives in Milestone 3.'));
+$('btnOrb').addEventListener('click', async () => {
+  if (busy) return;
 
+  const btn = $('btnOrb');
+  btn.disabled = true;
+  setReactorState('listening');
+
+  try {
+    const transcript = await startListening('en');
+
+    if (transcript) {
+      await send(transcript, { speak: true });
+    }
+  } catch (error) {
+    toast(error.message || 'Could not use the microphone.');
+    setReactorState('idle');
+  } finally {
+    btn.disabled = false;
+  }
+});
 /* ---------- start ---------- */
 (function greet() {
   const h = new Date().getHours();
