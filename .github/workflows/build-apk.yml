@@ -34,6 +34,9 @@ jobs:
       - name: Run brain tests
         run: npm test
 
+        - name: Bundle JARVIS JavaScript
+        run: npm run build
+
       - name: Create Android project (first run only) and sync web files
         id: android
         run: |
