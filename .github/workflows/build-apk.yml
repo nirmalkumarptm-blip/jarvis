@@ -30,6 +30,25 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Verify JARVIS keyword tokens
+        run: |
+          python -m pip install sherpa-onnx
+          mkdir -p /tmp/jarvis-kws
+          curl -fL --retry 3 \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2 \
+            -o /tmp/jarvis-kws/model.tar.bz2
+          tar -xjf /tmp/jarvis-kws/model.tar.bz2 -C /tmp/jarvis-kws
+          MODEL=/tmp/jarvis-kws/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01
+          echo "JARVIS" > /tmp/jarvis-kws/keywords_raw.txt
+          sherpa-onnx-cli text2token \
+            --tokens "$MODEL/tokens.txt" \
+            --tokens-type bpe \
+            --bpe-model "$MODEL/bpe.model" \
+            /tmp/jarvis-kws/keywords_raw.txt \
+            /tmp/jarvis-kws/keywords.txt
+          echo "Generated JARVIS token:"
+          cat /tmp/jarvis-kws/keywords.txt  
+
       - name: Run brain tests
         run: npm test
 
