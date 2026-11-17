@@ -32,7 +32,7 @@ jobs:
 
       - name: Verify JARVIS keyword tokens
         run: |
-          python -m pip install sherpa-onnx sentencepiece
+          python -m pip install sherpa-onnx sentencepiece pypinyin
           mkdir -p /tmp/jarvis-kws
           curl -fL --retry 3 \
             https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2 \
