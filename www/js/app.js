@@ -392,6 +392,11 @@ $('btnOrb').addEventListener('click', async () => {
     btn.disabled = false;
   }
 });
+
+window.addEventListener('jarvisWakeDetected', () => {
+  $('btnOrb').click();
+});
+
 /* ---------- start ---------- */
 (function greet() {
   const h = new Date().getHours();
