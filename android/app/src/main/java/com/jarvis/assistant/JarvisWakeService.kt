@@ -1,5 +1,6 @@
 package com.jarvis.assistant
 
+import android.app.PendingIntent
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -140,6 +141,7 @@ class JarvisWakeService : Service() {
 
                     if (keyword.isNotBlank()) {
                         Log.i(TAG, "Wake word detected: $keyword")
+                        showWakeNotification()
                     }
 
                 } else if (count < 0) {
@@ -173,6 +175,36 @@ class JarvisWakeService : Service() {
             Log.i(TAG, "Wake detection stopped")
         }
     }
+
+    private fun showWakeNotification() {
+    val intent = Intent(this, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+        action = "com.jarvis.assistant.WAKE_DETECTED"
+    }
+
+    val pendingIntent = PendingIntent.getActivity(
+        this,
+        1002,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val notification = Notification.Builder(this, CHANNEL_ID)
+        .setContentTitle("JARVIS detected you")
+        .setContentText("Tap to open JARVIS")
+        .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+        .setContentIntent(pendingIntent)
+        .setAutoCancel(true)
+        .build()
+
+    val manager = getSystemService(
+        NotificationManager::class.java
+    )
+
+    manager.notify(1002, notification)
+}
 
     override fun onDestroy() {
         isRunning = false
