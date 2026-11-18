@@ -152,6 +152,7 @@ class JarvisWakeService : Service() {
 
         } catch (e: Exception) {
             Log.e(TAG, "Wake detection failed", e)
+            e.printStackTrace()
 
         } finally {
             isRunning = false
