@@ -39,4 +39,35 @@ internal class SherpaApiCheck {
         )
         stream = spotter?.createStream()
     }
+
+    fun processAudio(samples: FloatArray): String {
+        val kws = spotter ?: return ""
+        val audioStream = stream ?: return ""
+
+        audioStream.acceptWaveform(samples, sampleRate = 16000)
+
+        var detectedKeyword = ""
+
+        while (kws.isReady(audioStream)) {
+            kws.decode(audioStream)
+
+            val result = kws.getResult(audioStream).keyword
+
+            if (result.isNotBlank()) {
+                detectedKeyword = result
+                kws.reset(audioStream)
+                break
+            }
+        }
+
+        return detectedKeyword
+    }
+
+    fun release() {
+        stream?.release()
+        stream = null
+
+        spotter?.release()
+        spotter = null
+    }
 }
