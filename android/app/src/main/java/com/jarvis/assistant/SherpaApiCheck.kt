@@ -1,5 +1,6 @@
 package com.jarvis.assistant
 
+import android.content.res.AssetManager
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.KeywordSpotter
 import com.k2fsa.sherpa.onnx.KeywordSpotterConfig
@@ -30,4 +31,12 @@ internal class SherpaApiCheck {
         ),
         keywordsFile = "jarvis-kws/keywords.txt"
     )
+
+    fun initialize(assetManager: AssetManager) {
+        spotter = KeywordSpotter(
+            assetManager = assetManager,
+            config = config
+        )
+        stream = spotter?.createStream()
+    }
 }
