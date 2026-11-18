@@ -31,8 +31,14 @@ public class MainActivity extends BridgeActivity {
         }
     }
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
+protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+
+    if ("com.jarvis.assistant.WAKE_DETECTED".equals(intent.getAction())) {
+        if (getBridge() != null) {
+            getBridge().triggerWindowJSEvent("jarvisWakeDetected");
+        }
     }
+}
 }
