@@ -45,7 +45,7 @@ export async function startListening(lang = 'en') {
   }
 
   const result = await SpeechRecognition.start({
-    language: VOICE_LOCALES[lang] || 'en-IN',
+    language: lang === 'en' ? 'en-US' : (VOICE_LOCALES[lang] || 'en-US'),
     maxResults: 1,
     partialResults: false,
     popup: false
